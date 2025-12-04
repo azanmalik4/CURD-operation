@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { EmployeeData } from "./employeeData";
+import "./App.css";
 
-const getLocalData =()=>{
-  const lists = localStorage.getItem("mytodolist");
-  if(lists){
-    return JSON.parse(lists)
+const STORAGE_KEY = "employeeData";
+
+const getLocalData = () => {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    return [];
   }
-  else{
-    return[];
-  }
-}
+};
 
 function App() {
   const [data, setData] = useState(getLocalData);
@@ -19,15 +20,13 @@ function App() {
   const [id, setId] = useState(0);
   const [isUpdate, setIsUpdate] = useState(false);
 
-
-
   useEffect(() => {
-    setData(EmployeeData);
-  }, []);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [data]);
 
   const handleEdit = (id) => {
     const dt = data.filter((item) => item.id === id);
-    if (dt !== undefined) {
+    if (dt !== undefined && dt.length > 0) {
       setIsUpdate(true);
       setFirstName(dt[0].firstName);
       setLastName(dt[0].lastName);
@@ -37,46 +36,37 @@ function App() {
   };
 
   const handleSave = (e) => {
-    let error = "";
-    if (firstName === "") error += "First Name is required. ";
-
-    if (lastName === "") error += "Last Name is required. ";
-
-    if (age <= 0) error += "Age is required";
-
-    if(error === ""){
-
     e.preventDefault();
-    const dt = [...data];
-    const newObject = {
-      id: EmployeeData.length + 1,
-      firstName: firstName,
-      lastName: lastName,
-      age: age,
-    };
+    let error = "";
+    if (firstName.trim() === "") error += "First Name is required. ";
+    if (lastName.trim() === "") error += "Last Name is required. ";
+    if (age <= 0 || age === "") error += "Age is required";
 
-    dt.push(newObject);
-    setData(dt);
-    
-    }
-    else{
+    if (error === "") {
+      const newId = data.length > 0 ? Math.max(...data.map(item => item.id)) + 1 : 1;
+      const newObject = {
+        id: newId,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        age: parseInt(age),
+      };
+      setData([...data, newObject]);
+      handleClear();
+    } else {
       alert(error);
     }
   };
+
   const handleUpdate = () => {
-    const index = data
-      .map((item) => {
-        return item.id;
-      })
-      .indexOf(id);
-
-    const dt = [...data];
-    dt[index].firstName = firstName;
-    dt[index].lastName = lastName;
-    dt[index].age = age;
-
-    setData(dt);
-    handleClear();
+    const index = data.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const dt = [...data];
+      dt[index].firstName = firstName.trim();
+      dt[index].lastName = lastName.trim();
+      dt[index].age = parseInt(age);
+      setData(dt);
+      handleClear();
+    }
   };
 
   const handleClear = () => {
@@ -89,119 +79,121 @@ function App() {
 
   const handleDelete = (id) => {
     if (id > 0) {
-      if (window.confirm("Are you sure to delete this record?")) {
+      if (window.confirm("Are you sure you want to delete this record?")) {
         const dt = data.filter((item) => item.id !== id);
         setData(dt);
       }
     }
   };
 
-
-  useEffect(()=>{
-    localStorage.setItem("mytodolist",JSON.stringify(data))
-  },[data])
-
   return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginTop: "10px",
-          marginBottom: "10px",
-        }}
-      >
-        <div>
-          <label>
-            First Name:
+    <div className="app-container">
+      <div className="header">
+        <h1>👥 Employee Management</h1>
+        <p>Manage your employee records efficiently</p>
+      </div>
+
+      <div className="form-container">
+        <div className="form-grid">
+          <div className="form-group">
+            <label>First Name</label>
             <input
               type="text"
-              placeholder="Enter First Name"
+              placeholder="Enter first name"
               onChange={(e) => setFirstName(e.target.value)}
               value={firstName}
             />
-          </label>
-        </div>
-        <div>
-          <label htmlFor="">
-            Last Name:
+          </div>
+          <div className="form-group">
+            <label>Last Name</label>
             <input
               type="text"
-              placeholder="Enter Last Name"
+              placeholder="Enter last name"
               onChange={(e) => setLastName(e.target.value)}
               value={lastName}
             />
-          </label>
-        </div>
-        <div>
-          <label htmlFor="">
-            Age:
+          </div>
+          <div className="form-group">
+            <label>Age</label>
             <input
-              type="text"
-              placeholder="Enter your Age"
+              type="number"
+              placeholder="Enter age"
               onChange={(e) => setAge(e.target.value)}
               value={age}
             />
-          </label>
+          </div>
         </div>
-        <div>
+        <div className="button-group">
           {!isUpdate ? (
-            <button className="btn btn-primary" onClick={(e) => handleSave(e)}>
-              Save
+            <button className="btn btn-primary" onClick={handleSave}>
+              <span>💾 Save Employee</span>
             </button>
           ) : (
-            <button className="btn btn-primary" onClick={() => handleUpdate()}>
-              Update
+            <button className="btn btn-primary" onClick={handleUpdate}>
+              <span>✏️ Update Employee</span>
             </button>
           )}
-          <button className="btn btn-danger" onClick={() => handleClear()}>
-            Clear
+          <button className="btn btn-danger" onClick={handleClear}>
+            <span>🗑️ Clear Form</span>
           </button>
         </div>
       </div>
-      <div className="App">
-        <table className="table table-hover">
-          <thead>
-            <tr>
-              <td>Sr.NO:</td>
-              <td>ID</td>
-              <td>First Name</td>
-              <td>Last Name</td>
-              <td>Age</td>
-              <td>Actions</td>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item, index) => {
-              return (
-                <tr key={index}>
+
+      <div className="table-container">
+        {data.length > 0 ? (
+          <table className="table">
+            <thead>
+              <tr>
+                <td>Sr. No.</td>
+                <td>ID</td>
+                <td>First Name</td>
+                <td>Last Name</td>
+                <td>Age</td>
+                <td>Actions</td>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item, index) => (
+                <tr key={item.id}>
                   <td>{index + 1}</td>
                   <td>{item.id}</td>
                   <td>{item.firstName}</td>
                   <td>{item.lastName}</td>
                   <td>{item.age}</td>
                   <td>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleEdit(item.id)}
-                    >
-                      Edit
-                    </button>
-                    &nbsp;
-                    <button
-                      className="btn btn-danger"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Delete
-                    </button>
+                    <div className="action-buttons">
+                      <button
+                        className="btn btn-primary btn-small"
+                        onClick={() => handleEdit(item.id)}
+                      >
+                        <span>✏️ Edit</span>
+                      </button>
+                      <button
+                        className="btn btn-danger btn-small"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <span>🗑️ Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <h3>No Employees Found</h3>
+            <p>Start by adding your first employee record above</p>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
